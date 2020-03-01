@@ -10,6 +10,8 @@ public class LibraryOptimization {
 
 	static Random random = new Random();
 
+	static Map<Integer, Integer> booksCount = new HashMap<>();
+
 	static class Book {
 		int id;
 		int score;
@@ -17,6 +19,24 @@ public class LibraryOptimization {
 		public Book(int id, int score) {
 			this.id = id;
 			this.score = score;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if(this == o) return true;
+			if(o == null || getClass() != o.getClass()) return false;
+
+			Book book = (Book) o;
+
+			if(id != book.id) return false;
+			return score == book.score;
+		}
+
+		@Override
+		public int hashCode() {
+			int result = id;
+			result = 31 * result + score;
+			return result;
 		}
 	}
 
@@ -77,7 +97,12 @@ public class LibraryOptimization {
 			a = br.readLine();
 			String[] books = a.split(" ");
 			for (int m = 0; m < books.length; m++) {
-				lib.ids.add(Integer.valueOf(books[m]));
+				int bookId = Integer.valueOf(books[m]);
+				lib.ids.add(bookId);
+				// adding count to hashMap
+				booksCount.putIfAbsent(bookId, 0);
+				int count = booksCount.get(bookId);
+				booksCount.put(bookId, ++count);
 			}
 			// sort at the end or as long we go ?
 			List<Integer> sortedBookscores = lib.ids.stream().sorted((b1, b2) -> libraryInput.bookScore.get(b2).score - libraryInput.bookScore.get(b1).score).collect(Collectors.toList());
@@ -93,12 +118,12 @@ public class LibraryOptimization {
 		List<String> files = new ArrayList<>();
 
 //		files.add("a_example.txt");
-		files.add("b_read_on.txt");
+//		files.add("b_read_on.txt");
 
-		files.add("c_incunabula.txt");
-		files.add("d_tough_choices.txt");
+//		files.add("c_incunabula.txt");
+//		files.add("d_tough_choices.txt");
 		files.add("e_so_many_books.txt");
-		files.add("f_libraries_of_the_world.txt");
+//		files.add("f_libraries_of_the_world.txt");
 		List<LibraryInput> libs = new ArrayList<>();
 		for (String file : files) {
 			libs.add(readFile(file));
@@ -132,7 +157,7 @@ public class LibraryOptimization {
 	public static double computeLibraryPotential(Library lib, List<Book> bookScores, int remainingDays) {
 		// TODO could do it once
 		List<Integer> sortedBookscores = lib.ids.stream().sorted((b1, b2) -> bookScores.get(b2).score - bookScores.get(b1).score).collect(Collectors.toList());
-
+		List<Integer> booksToRemove=new ArrayList<>();
 		int daysToScan = remainingDays - lib.signupProcess;
 		int score = 0;
 		mainLoop:
@@ -144,7 +169,8 @@ public class LibraryOptimization {
 				}
 				int bookId = sortedBookscores.get(0);
 				int scoreBook = bookScores.get(bookId).score;
-				score += scoreBook;
+				int bookRarity = booksCount.get(bookId);
+				score += (scoreBook - bookRarity);
 				sortedBookscores.remove(0);
 			}
 			daysToScan--;
@@ -195,6 +221,12 @@ public class LibraryOptimization {
 
 			// we need to remove the same book from the other libraries
 			Library finalLib = lib;
+			lib.ids.forEach(bookId -> {
+				int newCount = booksCount.get(bookId);
+				booksCount.put(bookId, --newCount);
+			});
+
+			// removing all the books but all the books of the library may not passed ...
 			libs.stream().forEach(l ->
 					l.ids = l.ids.stream().filter(bookId -> !finalLib.ids.contains(bookId)).collect(Collectors.toList())
 			);

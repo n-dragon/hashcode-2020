@@ -41,11 +41,11 @@ public class PizzaOrder {
 	public static List<PizzaInput> readFiles() throws IOException {
 		List<String> files = new ArrayList<>();
 //		files.add("a_example.in");
-		files.add("b_small.in");
+		files.add("pizzas/b_small.in");
 
-		files.add("c_medium.in");
-		files.add("d_quite_big.in");
-		files.add("e_also_big.in");
+		files.add("pizzas/c_medium.in");
+		files.add("pizzas/d_quite_big.in");
+		files.add("pizzas/e_also_big.in");
 		List<PizzaInput> pizzas = new ArrayList<>();
 		for (String file : files) {
 			pizzas.add(readFile(file));
