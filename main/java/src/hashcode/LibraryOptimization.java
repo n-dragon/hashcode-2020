@@ -59,6 +59,16 @@ public class LibraryOptimization {
 
 
 	}
+
+	static class LibraryPotential {
+		double potentialScore;
+		List<Integer> bookIds;
+
+		public LibraryPotential(double potentialScore, List<Integer> bookIds) {
+			this.potentialScore = potentialScore;
+			this.bookIds = bookIds;
+		}
+	}
 	// n type of pizza each one has its slices number
 	// find the combination(list of pizza type) so that you have the maximum number or below
 
@@ -154,10 +164,10 @@ public class LibraryOptimization {
 		});
 	}
 
-	public static double computeLibraryPotential(Library lib, List<Book> bookScores, int remainingDays) {
+	public static LibraryPotential computeLibraryPotential(Library lib, List<Book> bookScores, int remainingDays) {
 		// TODO could do it once
 		List<Integer> sortedBookscores = lib.ids.stream().sorted((b1, b2) -> bookScores.get(b2).score - bookScores.get(b1).score).collect(Collectors.toList());
-		List<Integer> booksToRemove=new ArrayList<>();
+		List<Integer> booksToRemove = new ArrayList<>();
 		int daysToScan = remainingDays - lib.signupProcess;
 		int score = 0;
 		mainLoop:
@@ -170,16 +180,17 @@ public class LibraryOptimization {
 				int bookId = sortedBookscores.get(0);
 				int scoreBook = bookScores.get(bookId).score;
 				int bookRarity = booksCount.get(bookId);
-				score += (scoreBook - bookRarity);
+//				score += (scoreBook );
+				score += (scoreBook - 3*bookRarity);
 				sortedBookscores.remove(0);
+				booksToRemove.add(bookId);
 			}
 			daysToScan--;
 		}
 		// score divided by time to sign up
 		// => so that big signupprocess are disadvantaged to less point but using less main thread.
-		return score / lib.signupProcess;
-
-//		return score;
+		int libScore = score / lib.signupProcess;
+		return new LibraryPotential(libScore, booksToRemove);
 	}
 
 	public LibraryOptimization() {
@@ -206,29 +217,28 @@ public class LibraryOptimization {
 		int remainingDays = libraryInput.numberOfDayToScan;
 		int signupDay = 0;
 		while (libs.size() != 0) {
-			double maxScore = -1 * Double.MAX_VALUE;
-//			System.out.println(libs.size());
+			LibraryPotential maxScore = new LibraryPotential(-1 * Double.MAX_VALUE, null);
 			for (Library l : libs) {
-				double libPotential = computeLibraryPotential(l, libraryInput.bookScore, remainingDays);
-				l.potential = libPotential;
-				if(l.potential > maxScore) {
+				LibraryPotential libPotential = computeLibraryPotential(l, libraryInput.bookScore, remainingDays);
+				l.potential = libPotential.potentialScore;
+				if(l.potential > maxScore.potentialScore) {
 					lib = l;
-					maxScore = l.potential;
+					maxScore = libPotential;
 				}
 			}
 			libs.remove(lib);
 
 
 			// we need to remove the same book from the other libraries
-			Library finalLib = lib;
-			lib.ids.forEach(bookId -> {
+			maxScore.bookIds.forEach(bookId -> {
 				int newCount = booksCount.get(bookId);
 				booksCount.put(bookId, --newCount);
 			});
 
 			// removing all the books but all the books of the library may not passed ...
+			LibraryPotential finalMaxScore = maxScore;
 			libs.stream().forEach(l ->
-					l.ids = l.ids.stream().filter(bookId -> !finalLib.ids.contains(bookId)).collect(Collectors.toList())
+					l.ids = l.ids.stream().filter(bookId -> !finalMaxScore.bookIds.contains(bookId)).collect(Collectors.toList())
 			);
 			result.add(lib);
 			remainingDays = remainingDays - lib.signupProcess;
